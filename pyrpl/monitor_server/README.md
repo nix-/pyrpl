@@ -1,6 +1,8 @@
 # 4RP Server Protocol
 
-Protocol that provides access to FPGA registers via LAN, suitable for automation of measurements. 
+Protocol that provides access to FPGA registers via LAN, suitable for automation of data aqusition.
+
+![img](https://redpitaya.com/wp-content/uploads/2023/02/Red_Pitaya_-_Skica_vectors_-za-letak_transparent-1024x644.png)
 
 ### Build
 
