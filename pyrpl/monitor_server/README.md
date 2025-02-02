@@ -1,4 +1,4 @@
-# 4RP Server Protocol
+# 4RP Protocol - Server Implementation
 
 Protocol that provides access to FPGA registers via LAN, suitable for automation of data aqusition.
 

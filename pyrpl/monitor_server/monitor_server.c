@@ -31,30 +31,43 @@
 ############################################################################### 
  */
 
+ /**
+  * Communication protocol for the data server:
+  *
+  * The program is launched on the redpitaya with
+  * ./monitor-server <PORT-NUMBER>, where the default port number is 2222.
+  *
+  * We allow for bidirectional data transfer.
+  * The client (python program) connects to the server, which in return accepts
+  * the connection. The client sends 8 bytes of data:
+  *
+  * Byte 1 is interpreted as a character:
+  *     - 'r' for read,
+  *     - 'w' for write,
+  *     - 'c' for close.
+  * All other messages are ignored.
+  *
+  * Byte 2 is reserved.
+  *
+  * Bytes 3+4 are interpreted as unsigned int.
+  * This number n is the amount of 4-byte-units to be read or written.
+  * Maximum is 2^16.
+  *
+  * Bytes 5-8 are the start address to be written to.
+  *
+  * +-----------------------------------------------------+
+  * | B1: r/w/c | B2: X | B3-4: n (4B units) | B5-8: addr |
+  * +-----------------------------------------------------+
+  *
+  * If the command is read, the server will then send the requested 4*n bytes to
+  * the client. If the command is write, the server will wait for 4*n bytes of
+  * data from the server and write them to the designated FPGA address space. If
+  * the command is close, or if the connection is broken, the server program
+  * will terminate.
+  *
+  * After this, the server will wait for the next command.
+  */
 
-
- 
-/* 
-Communication protocol for the data server:
-
-The program is launched on the redpitaya with 
-
-./monitor-server PORT-NUMBER, where the default port number is 2222.  
-
-We allow for bidirectional data transfer. The client (python program) connects to the server, which in return accepts the connection. 
-The client sends 8 bytes of data:
-Byte 1 is interpreted as a character: 'r' for read and 'w' for write, and 'c' for close. All other messages are ignored. 
-Byte 2 is reserved. 
-Bytes 3+4 are interpreted as unsigned int. This number n is the amount of 4-byte-units to be read or written. Maximum is 2^16. 
-Bytes 5-8 are the start address to be written to. 
-
-If the command is read, the server will then send the requested 4*n bytes to the client. 
-If the command is write, the server will wait for 4*n bytes of data from the server and write them to the designated FPGA address space. 
-If the command is close, or if the connection is broken, the server program will terminate. 
-
-After this, the server will wait for the next command. 
-*/
- 
  /* for now the program is utterly unoptimized... */
  
 #define _GNU_SOURCE
