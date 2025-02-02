@@ -173,13 +173,13 @@ static void write_values(unsigned long a_addr, unsigned long* a_values, unsigned
     }
 }
 
+
 int main(int argc, char* argv[])
 {
-    int portno;
-    unsigned int data_length;
-    unsigned long address;
+    int port_number = 2222;
     socklen_t clilen;
 
+    // @todo Creating of the structure for the packages
     char data_buffer[8 + sizeof(unsigned long) * MAX_LENGTH];
     unsigned long* rw_buffer = (unsigned long*)&(data_buffer[8]);
     char* buffer = (char*)&(data_buffer[0]);
@@ -187,7 +187,6 @@ int main(int argc, char* argv[])
     struct sockaddr_in serv_addr;
     struct sockaddr_in cli_addr;
 
-    int n;
     if (argc < 2) {
         fprintf(stderr, "ERROR, no port provided\n");
         exit(1);
@@ -204,10 +203,10 @@ int main(int argc, char* argv[])
     }
 
     bzero((char*)&serv_addr, sizeof(serv_addr));
-    portno = atoi(argv[1]);
+    port_number = atoi(argv[1]);
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portno);
+    serv_addr.sin_port = htons(port_number);
 
     if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         error("ERROR on binding");
@@ -225,7 +224,12 @@ int main(int argc, char* argv[])
     }
 
     // service loop
-    while (0 == 0) {
+    while (1) {
+        // @todo Improve variables use in this scope (better abstruction)
+        int n = 0;
+        unsigned int data_length = 0;
+        unsigned long address = 0;
+
         // read next header from client
         bzero(buffer, 8);
         n = recv(newsockfd, buffer, 8, MSG_WAITALL);
@@ -242,11 +246,16 @@ int main(int argc, char* argv[])
         if (data_length > MAX_LENGTH) {
             data_length = MAX_LENGTH;
         }
+
+        // handling type of package
         if (data_length == 0) {
             continue;
         }
-        // test for various cases Read, Write, Close
-        else if (buffer[0] == 'r') { // read from FPGA
+
+        // handle read, write, close
+        switch (buffer[0]) {
+        case 'r': {
+            // read from FPGA
             read_values(address, rw_buffer, data_length);
             // send the data
             n = send(newsockfd, (void*)data_buffer, data_length * sizeof(unsigned long) + 8, 0);
@@ -256,8 +265,10 @@ int main(int argc, char* argv[])
             if (n != data_length * sizeof(unsigned long) + 8) {
                 error("ERROR wrote incorrect number of bytes to socket");
             }
+            break;
         }
-        else if (buffer[0] == 'w') { // write to FPGA
+        case 'w': {
+            // write to FPGA
             // read new data from socket
             n = recv(newsockfd, (void*)rw_buffer, data_length * sizeof(unsigned long), MSG_WAITALL);
             if (n < 0) {
@@ -272,21 +283,24 @@ int main(int argc, char* argv[])
             if (n != 8) {
                 error("ERROR control sequence mirror incorreclty transmitted");
             }
+            break;
         }
-        else if (buffer[0] == 'c') {
-            break; // close program
+        case 'c': {
+            // close the socket
+            close(newsockfd);
+            close(sockfd);
+            // clean up the memory mapping
+            close_map_base();
+            // exit - session closed
+            return 0;
         }
-        else {
-            error(
-                "ERROR unknown control character - server and client out of "
-                "sync"); // if an unknown control sequence is received,
-                         // terminate for security reasons
+        default:
+            error("ERROR unknown control character - server and client out of sync");
+            // if an unknown control sequence is received,
+            // terminate for security reasons
+            break;
         }
     }
-    // close the socket
-    close(newsockfd);
-    close(sockfd);
-    // clean up the memory mapping
-    close_map_base();
-    return 0;
+
+    return -1; // should NEVER happen
 }
