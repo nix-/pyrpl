@@ -74,6 +74,7 @@
 
 
 #include "monitor_server.h"
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -172,6 +173,25 @@ static void write_values(unsigned long a_addr, unsigned long* a_values, unsigned
         close(fd);
     }
 }
+
+
+#define TOTAL_PACKET_SIZE (8 + sizeof(unsigned long) * MAX_LENGTH)
+
+typedef union mem_map_4rp_u {
+    char buffer[TOTAL_PACKET_SIZE];
+    struct {
+        struct {
+            // header
+            char command;
+            char reserved;
+            unsigned short lenght;
+            unsigned int address;
+        } header;
+        // rw-buffer
+        unsigned long data[MAX_LENGTH];
+    };
+} __attribute__((packed)) mem_map_4rp_t;
+static_assert(sizeof(mem_map_4rp_t) == TOTAL_PACKET_SIZE, "Missaligment between packet and struct");
 
 
 int main(int argc, char* argv[])
